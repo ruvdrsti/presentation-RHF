@@ -3,7 +3,57 @@
 \usepackage{bm}
 \usepackage[utf8]{inputenc}
 \usepackage{braket}
+\usepackage{listings}
 \usetheme{Copenhagen}
+
+% listings python setting
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+basicstyle=\ttm,
+morekeywords={self},              % Add keywords here
+keywordstyle=\ttb\color{deepblue},
+emph={MyClass,__init__},          % Custom highlighting
+emphstyle=\ttb\color{deepred},    % Custom highlighting style
+stringstyle=\color{deepgreen},
+frame=single,                         % Any extra options here
+breaklines=true,
+postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+showstringspaces=false
+}}
+
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% Python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+% end python settings
+
 \title{Programming project 3: Restricted Hartree-Fock}
 
 \author{Van der Stichelen Ruben, Wieme Xander}
@@ -149,9 +199,184 @@
         \end{equation*}
     \end{itemize}
 \end{frame}
+
 \section{How?}
 \label{sec:how}
-\begin{frame}
+\begin{frame}[fragile]
     \frametitle{How?}
+    \begin{python}
+class Molecule:
+    def __init__(self, geom_file):
+        if "pubchem" in geom_file:
+            self.id = psi4.geometry(geom_file)
+        else:
+            input = open(filename, 'r').readlines()
+            data = ""
+            for i, row in enumerate(input[1:]):
+                Z, x, y, z = row.split()
+                data += f"{int(float(Z))} {x} {y} {z}\n"
+            ...       
+    \end{python}
 \end{frame}
+
+\begin{frame}[fragile]
+    \begin{python}
+        ...
+        data += "units bohr"
+        self.id = psi4.geometry(data)
+        self.id.update_geometry()
+        self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
+        self.basis = self.wfn.basisset()
+        self.integrals = psi4.core.MintsHelper(self.basis)
+        self.occupied = self.wfn.nalpha() 
+    \end{python}  
+\end{frame}
+
+
+\begin{frame}[fragile]
+    \frametitle{Nuclear repusltion energy}
+    \begin{python}
+def displayNucRep(self):
+    return self.id.nuclear_repulsion_energy()
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{One electron integrals}
+    \begin{python}
+def one_electron_integrals(self):
+    self.S = self.integrals.ao_overlap().np
+    self.T = self.integrals.ao_kinetic().np
+    self.V = self.integrals.ao_potential().np
+    self.H_core = self.T + self.V 
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Two electron integrals}
+    \begin{python}
+def ElectronRepulsion(self):
+    self.tei = self.integrals.ao_eri().np
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Initial (Guess) Matrix}
+    \begin{python}
+def density_matrix(self, initial=False):  
+    # First time guess
+    if initial:        
+        self.C = eigh(self.H_core, self.S)[1]
+    
+    # Return the density matrix
+    self.D = 2 * np.einsum('ij,jk->ik', self.C[:, :self.occupied], self.C.T[:self.occupied, :], optimize=True)
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Fock Matrix}
+    \begin{python}
+def fock_matrix(self):
+    # tei is a 4D numpy array where the indices are given according to the integral in step 2.3
+    # The coulomb integral is the tei matrix, the exchange matrix is the tei matrix where the second and third
+    # indices are swapped
+    return self.H_core + np.einsum('ij,uvij->uv', self.D, self.tei - 1/2 * np.swapaxes(self.tei, 1, 2))
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The SCF energy}
+    \begin{python}
+def electronic_energy(self):
+    self.E_elec = 1/2*np.einsum('ij,ij', self.D, self.H_core + self.F)
+
+def total_energy(self):
+    self.E_tot self.id.nuclear_repulsion_energy() + electronic_energy(self.D, self.F, self.H_core)
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The SCF energy}
+    \begin{python}
+
+        def SCF(self):
+        """
+        Input:
+            molecule: psi4.core.Molecule
+            
+        Performs the restricted hartree fock iterations and print the progress on screen
+        """
+        
+        iteration = 0
+        iterations = [0]
+        energies = list()
+    \end{python}
+\end{frame}
+\begin{frame}[fragile]
+    \begin{python}
+   
+        # Init
+        
+        wfn = psi4.core.Wavefunction.build(molecule, psi4.core.get_global_option("basis"))
+        
+        prev_D = density_matrix(self.S, self.occupied, H_core=self.H_core, initial=True)
+        F = fock_matrix(self.H_core, prev_D, self.tei)
+        prev_E_elec = electronic_energy(prev_D, F, self.H_core)
+        
+        energies.append(prev_E_elec)
+    \end{python}
+\end{frame}
+\begin{frame}[fragile]
+    \begin{python}
+        # Convergence variables
+        delta_E_elec = 1
+        delta_D = 1
+        
+        # Print header
+        print("{} {:>15} {:>15} {:>15}".format("i", "E(elec)" , "Delta(E)", "RMS(D)"))
+        
+        # Repeat until the density and enery differences are in there thresholds or max iteration is reached
+        while np.abs(delta_D) > 10**(-4) and iteration < 50:
+    \end{python}
+\end{frame}
+\begin{frame}[fragile]
+    \begin{python}          
+        
+            # Update
+            C = eigh(F, self.S)[1]
+            D = density_matrix(self.S, self.occupied, C)
+            F = fock_matrix(H_core, D, self.tei)
+            E_elec = electronic_energy(D, F, self.H_core)
+    
+            # Tets convergence
+            delta_E_elec = E_elec - prev_E_elec
+            delta_D = np.sqrt(np.einsum('ij->', np.square(D - prev_D)))
+        \end{python}
+    \end{frame}
+    \begin{frame}[fragile]
+        \begin{python}
+            # Print progress
+            iteration += 1
+            iterations.append(iteration)
+            energies.append(E_elec)
+            print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, E_elec , delta_E_elec, delta_D))
+        
+            prev_D = D
+            prev_E_elec = E_elec
+        print(total_energy(molecule, D, F, H_core))
+    \end{python}
+\end{frame}
+\begin{frame}[fragile]
+    \begin{python}        
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.set_xlabel("iterations")
+        ax.set_ylabel("energy")
+        ax.plot(iterations, energies)
+        plt.show()
+
+    \end{python}
+\end{frame}
+
 \end{document}
+
