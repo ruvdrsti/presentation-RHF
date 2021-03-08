@@ -3,7 +3,57 @@
 \usepackage{bm}
 \usepackage[utf8]{inputenc}
 \usepackage{braket}
+\usepackage{listings}
 \usetheme{Copenhagen}
+
+% listings python setting
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+basicstyle=\ttm,
+morekeywords={self},              % Add keywords here
+keywordstyle=\ttb\color{deepblue},
+emph={MyClass,__init__},          % Custom highlighting
+emphstyle=\ttb\color{deepred},    % Custom highlighting style
+stringstyle=\color{deepgreen},
+frame=single,                         % Any extra options here
+breaklines=true,
+postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+showstringspaces=false
+}}
+
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% Python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+% end python settings
+
 \title{Programming project 3: Restricted Hartree-Fock}
 
 \author{Van der Stichelen Ruben, Wieme Xander}
@@ -137,7 +187,73 @@
 \end{frame}
 \section{How?}
 \label{sec:how}
-\begin{frame}
+\begin{frame}[fragile]
     \frametitle{How?}
+    \begin{python}
+class Molecule:
+    def __init__(self, geom_file):
+        if "pubchem" in geom_file:
+            self.id = psi4.geometry(geom_file)
+        else:
+            input = open(filename, 'r').readlines()
+            data = ""
+            for i, row in enumerate(input[1:]):
+                Z, x, y, z = row.split()
+                data += f"{int(float(Z))} {x} {y} {z}\n"
+            ...       
+    \end{python}
 \end{frame}
+
+\begin{frame}[fragile]
+    \begin{python}
+        ...
+        data += "units bohr"
+        self.id = psi4.geometry(data)
+        self.id.update_geometry()
+        self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
+        self.basis = self.wfn.basisset()
+        self.integrals = psi4.core.MintsHelper(self.basis)
+        self.occupied = self.wfn.nalpha()  # only works for closed shell systems
+        self.guessMatrix = "empty"
+    \end{python}
+    
+\end{frame}
+
+\begin{frame}[fragile]
+    \begin{python}
+def displayNucRep(self):
+    """
+    Will calculate the nuclear repulsion
+    """
+    return self.id.nuclear_repulsion_energy()
+    \end{python}
+    
+\end{frame}
+
+\begin{frame}[fragile]
+    \begin{python}
+def one_electron_integrals(self):
+        """
+        Will calculate the one-electron integrals
+        """
+        self.S = self.integrals.ao_overlap().np
+        self.T = self.integrals.ao_kinetic().np
+        self.V = self.integrals.ao_potential().np
+        self.H_core = self.T + self.V 
+    \end{python}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \begin{python}
+def ElectronRepulsion(self):
+        """
+        Will calculate the interelectronic repulsion as a np array (4D array)
+        """
+        self.tei = self.integrals.ao_eri().np
+    \end{python}
+    
+\end{frame}
+
 \end{document}
