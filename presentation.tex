@@ -280,7 +280,7 @@ def fock_matrix(self):
     # tei is a 4D numpy array where the indices are given according to the integral in step 2.3
     # The coulomb integral is the tei matrix, the exchange matrix is the tei matrix where the second and third
     # indices are swapped
-    return self.H_core + np.einsum('ij,uvij->uv', self.D, self.tei - 1/2 * np.swapaxes(self.tei, 1, 2))
+    self.F =  self.H_core + np.einsum('ij,uvij->uv', self.D, self.tei - 1/2 * np.swapaxes(self.tei, 1, 2))
     \end{python}
 \end{frame}
 
@@ -291,7 +291,7 @@ def electronic_energy(self):
     self.E_elec = 1/2*np.einsum('ij,ij', self.D, self.H_core + self.F)
 
 def total_energy(self):
-    self.E_tot self.id.nuclear_repulsion_energy() + electronic_energy(self.D, self.F, self.H_core)
+    self.E_tot = self.id.nuclear_repulsion_energy() + self.electronic_energy()
     \end{python}
 \end{frame}
 
@@ -316,12 +316,15 @@ def total_energy(self):
     \begin{python}
    
         # Init
-        
-        wfn = psi4.core.Wavefunction.build(molecule, psi4.core.get_global_option("basis"))
-        
-        prev_D = density_matrix(self.S, self.occupied, H_core=self.H_core, initial=True)
-        F = fock_matrix(self.H_core, prev_D, self.tei)
-        prev_E_elec = electronic_energy(prev_D, F, self.H_core)
+        self.one_electron_integrals()
+        self.ElectronRepulsion()
+        self.density_matrix(initial=True)
+        self.fock_matrix()
+        self.electronic_energy()
+        self.total_energy()
+
+        prev_D = self.D
+        prev_E_elec = self.E_elec
         
         energies.append(prev_E_elec)
     \end{python}
@@ -334,23 +337,24 @@ def total_energy(self):
         
         # Print header
         print("{} {:>15} {:>15} {:>15}".format("i", "E(elec)" , "Delta(E)", "RMS(D)"))
-        
-        # Repeat until the density and enery differences are in there thresholds or max iteration is reached
-        while np.abs(delta_D) > 10**(-4) and iteration < 50:
     \end{python}
 \end{frame}
 \begin{frame}[fragile]
-    \begin{python}          
-        
+    \begin{python} 
+        # Repeat until the density and enery differences are in there thresholds or max iteration is reached
+        while np.abs(delta_D) > 10**(-4) and iteration < 50:
             # Update
-            C = eigh(F, self.S)[1]
-            D = density_matrix(self.S, self.occupied, C)
-            F = fock_matrix(H_core, D, self.tei)
-            E_elec = electronic_energy(D, F, self.H_core)
-    
-            # Tets convergence
-            delta_E_elec = E_elec - prev_E_elec
-            delta_D = np.sqrt(np.einsum('ij->', np.square(D - prev_D)))
+            self.C = eigh(self.F, self.S)[1]
+            self.density_matrix()
+            self.fock_matrix()
+            self.electronic_energy()
+        \end{python}
+    \end{frame}
+    \begin{frame}[fragile]
+        \begin{python}
+             # Tets convergence
+            delta_E_elec = self.E_elec - prev_E_elec
+            delta_D = np.sqrt(np.einsum('ij->', np.square(self.D - prev_D)))
         \end{python}
     \end{frame}
     \begin{frame}[fragile]
@@ -358,12 +362,12 @@ def total_energy(self):
             # Print progress
             iteration += 1
             iterations.append(iteration)
-            energies.append(E_elec)
+            energies.append(self.E_elec)
             print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, E_elec , delta_E_elec, delta_D))
         
-            prev_D = D
-            prev_E_elec = E_elec
-        print(total_energy(molecule, D, F, H_core))
+            prev_D = self.D
+            prev_E_elec = self.E_elec
+        print(self.total_energy)
     \end{python}
 \end{frame}
 \begin{frame}[fragile]
