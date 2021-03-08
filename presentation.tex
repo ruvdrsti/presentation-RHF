@@ -1,0 +1,157 @@
+\documentclass{beamer}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage[utf8]{inputenc}
+\usepackage{braket}
+\usetheme{Copenhagen}
+\title{Programming project 3: Restricted Hartree-Fock}
+
+\author{Van der Stichelen Ruben, Wieme Xander}
+
+\institute{Ghent University}
+
+\date{March 10 2021}
+\begin{document}
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}
+    \frametitle{contents}
+    \tableofcontents
+\end{frame}
+
+\section{Why?}
+\label{sec:why}
+\begin{frame}
+    \frametitle{Why?}
+    \begin{itemize}
+        \item Schrödinger Equation
+        \begin{equation*}
+            \hat{\boldsymbol{H}}\Psi = E\Psi
+        \end{equation*}
+        \item True Hamiltonian
+        \begin{equation*}
+            \hat{\boldsymbol{H}} = \sum_i^N\hat{h}(i) + \frac{1}{2}\sum_i^N\sum_j^N\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|} 
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{What do we need?}
+    \begin{enumerate}
+        \item Slater Determinant
+        \begin{equation*}
+            \ket{\Psi} = \frac{1}{\sqrt{N!}}\begin{vmatrix}
+                \chi_1(\boldsymbol{x}_1) & \cdots & \chi_n(\boldsymbol{x}_1) \\
+                \cdots & \cdots & \cdots \\
+                \chi_1(\boldsymbol{x}_n) & \cdots & \chi_n(\boldsymbol{x}_n)\\
+            \end{vmatrix}
+        \end{equation*}
+        \item spin-orbitals
+        \begin{equation*}
+            \chi_i(\boldsymbol{x_j}) = \psi_i(\boldsymbol{r}_j)\gamma(\boldsymbol{\omega}_j)
+        \end{equation*}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item Expectation value
+        \begin{multline*}
+            \bra{\Psi}\hat{\boldsymbol{H}}\ket{\Psi} = \sum_i^N\bra{\chi_i}\hat{h}(1)\ket{\chi_i} \\
+            + \frac{1}{2}\sum_i^N\sum_j^N\left(\int\chi_i^*(1)\chi_i(1)\frac{1}{|\boldsymbol{r}_i- \boldsymbol{r}_j|}\chi_j^*(2)\chi_j(2)d1d2 \right.\\
+             \left. - \int\chi_i^*(1)\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\chi_i(2)d1d2\right)
+        \end{multline*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item Energy is stationary
+        \begin{equation*}
+            E(\chi_i + \delta\chi_i) - E(\chi_i) =\delta E = 0
+        \end{equation*}
+        \item Correct for non-orthonormality
+        \begin{equation*}
+            L = E - \sum_{ij}\epsilon_{ij}(\braket{\chi_i|\chi_j} - \delta_{ij})
+        \end{equation*}
+        
+        \begin{equation*}
+            \delta L = \sum_i\bra{\delta\chi_i}\hat{h}(1) + \sum_j(\hat{J_j} - \hat{K_j})\ket{\chi_i} -  \sum_{ij}\epsilon_{ij}\braket{\delta\chi_i|\chi_j} + CC = 0
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Some Helpfull Operators}
+    \begin{itemize}
+        \item Coulomb operator
+        \begin{equation*}
+            \bra{\chi_i}\hat{J}_j\ket{\chi_i} = \int\chi_i^*(1)\chi_j^*(2)\frac{1}{|\boldsymbol{r}_i- \boldsymbol{r}_j|}\chi_i(1)\chi_j(2)d1d2
+         \end{equation*}
+        \item exchange operator
+        \begin{equation*}
+            \bra{\chi_i}\hat{K}_j\ket{\chi_i} = \int\chi_i^*(1)\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\chi_i(2)d1d2
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \begin{itemize}
+        \item Condition
+        \begin{equation*}
+            \left(\hat{h}(1) + \sum_j(\hat{J_j} - \hat{K_j})\right)\chi_i = \sum_{j}\epsilon_{ij}\chi_j
+        \end{equation*}
+        \item Hartree-Fock Equation
+        \begin{equation*}
+            \hat{f}(1)\chi_i = \epsilon_i\chi_i
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Spin elimination}
+    \begin{itemize}
+        \item No interaction with spin $\rightarrow$ remove it
+        \item Example: $\alpha$-Spin
+        \begin{equation*}
+            \bra{\alpha}\hat{f}(1)\ket{\psi_i(\boldsymbol{r}_1)\alpha} = \epsilon_i\psi_i(\boldsymbol{r}_1)
+        \end{equation*}
+        \item Exchange operator?
+        \begin{equation*}
+            \hat{K}_j\ket{\psi_i(1)\alpha(1)} = \int\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\psi_i(2)\alpha(2)d1d2
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Restricted Hartree Fock}
+    \begin{itemize}
+        \item Only paired electrons (Pauli principle)
+        \item In the same orbitals
+        \begin{equation*}
+            \hat{f}(1) = \hat{h}(1) + 2\sum_i^{N/2}\hat{J}_i - \sum_i^{N/2}\hat{K}_i
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Solving equations}
+    \begin{itemize}
+        \item Begin iterations
+        \begin{equation*}
+            \boldsymbol{\hat{H}}^{core}\boldsymbol{C} = \boldsymbol{SC}c
+        \end{equation*} 
+        \item Roothaan-Hall Equations
+        \begin{equation*}
+            \boldsymbol{FC} = \boldsymbol{SC}\epsilon
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+\section{How?}
+\label{sec:how}
+\begin{frame}
+    \frametitle{How?}
+\end{frame}
+\end{document}
