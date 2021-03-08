@@ -110,6 +110,31 @@
     \end{itemize}
 \end{frame}
 
+\begin{frame}
+    \frametitle{Spin elimination}
+    \begin{itemize}
+        \item No interaction with spin $\rightarrow$ remove it
+        \item Example: $\alpha$-Spin
+        \begin{equation*}
+            \bra{\alpha}\hat{f}(1)\ket{\psi_i(\boldsymbol{r}_1)\alpha} = \epsilon_i\psi_i(\boldsymbol{r}_1)
+        \end{equation*}
+        \item Exchange operator?
+        \begin{equation*}
+            \hat{K}_j\ket{\psi_i(1)\alpha(1)} = \int\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\psi_i(2)\alpha(2)d1d2)
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Restricted Hartree Fock}
+    \begin{itemize}
+        \item Only paired electrons (Pauli principle)
+        \item In the same orbitals
+        \begin{equation*}
+            \hat{f}(1) = \hat{h}(1) + 2\sum_i^{N/2}\hat{J}_i - \sum_i^{N/2}\hat{K}_i
+        \end{equation*}
+    \end{itemize}
+\end{frame}
 \section{How?}
 \label{sec:how}
 \begin{frame}
