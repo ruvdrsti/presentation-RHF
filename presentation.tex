@@ -142,7 +142,7 @@ showstringspaces=false
          \end{equation*}
         \item exchange operator
         \begin{equation*}
-            \bra{\chi_i}\hat{K}_j\ket{\chi_i} = \int\chi_i^*(1)\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\chi_i(2)d1d2)
+            \bra{\chi_i}\hat{K}_j\ket{\chi_i} = \int\chi_i^*(1)\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\chi_i(2)d1d2
         \end{equation*}
     \end{itemize}
 \end{frame}
@@ -170,7 +170,7 @@ showstringspaces=false
         \end{equation*}
         \item Exchange operator?
         \begin{equation*}
-            \hat{K}_j\ket{\psi_i(1)\alpha(1)} = \int\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\psi_i(2)\alpha(2)d1d2)
+            \hat{K}_j\ket{\psi_i(1)\alpha(1)} = \int\chi_j(1)\frac{1}{|\boldsymbol{r}_i - \boldsymbol{r}_j|}\chi_j^*(2)\psi_i(2)\alpha(2)d1d2
         \end{equation*}
     \end{itemize}
 \end{frame}
@@ -185,6 +185,7 @@ showstringspaces=false
         \end{equation*}
     \end{itemize}
 \end{frame}
+
 \section{How?}
 \label{sec:how}
 \begin{frame}[fragile]
@@ -213,47 +214,115 @@ class Molecule:
         self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
         self.basis = self.wfn.basisset()
         self.integrals = psi4.core.MintsHelper(self.basis)
-        self.occupied = self.wfn.nalpha()  # only works for closed shell systems
-        self.guessMatrix = "empty"
-    \end{python}
-    
+        self.occupied = self.wfn.nalpha() 
+    \end{python}  
 \end{frame}
 
 \begin{frame}[fragile]
+    \frametitle{Nuclear repusltion energy}
     \begin{python}
 def displayNucRep(self):
-    """
-    Will calculate the nuclear repulsion
-    """
     return self.id.nuclear_repulsion_energy()
     \end{python}
-    
 \end{frame}
 
 \begin{frame}[fragile]
+    \frametitle{One electron integrals}
     \begin{python}
 def one_electron_integrals(self):
-        """
-        Will calculate the one-electron integrals
-        """
-        self.S = self.integrals.ao_overlap().np
-        self.T = self.integrals.ao_kinetic().np
-        self.V = self.integrals.ao_potential().np
-        self.H_core = self.T + self.V 
+    self.S = self.integrals.ao_overlap().np
+    self.T = self.integrals.ao_kinetic().np
+    self.V = self.integrals.ao_potential().np
+    self.H_core = self.T + self.V 
     \end{python}
-
-
 \end{frame}
 
 \begin{frame}[fragile]
+    \frametitle{Two electron integrals}
     \begin{python}
 def ElectronRepulsion(self):
-        """
-        Will calculate the interelectronic repulsion as a np array (4D array)
-        """
-        self.tei = self.integrals.ao_eri().np
+    self.tei = self.integrals.ao_eri().np
     \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Initial (Guess) Matrix}
+    \begin{python}
+def density_matrix(self, initial=False):  
+    # First time guess
+    if initial:        
+        self.C = eigh(self.H_core, self.S)[1]
     
+    # Return the density matrix
+    self.D = 2 * np.einsum('ij,jk->ik', self.C[:, :self.occupied], self.C.T[:self.occupied, :], optimize=True)
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Fock Matrix}
+    \begin{python}
+def fock_matrix(self):
+    # tei is a 4D numpy array where the indices are given according to the integral in step 2.3
+    # The coulomb integral is the tei matrix, the exchange matrix is the tei matrix where the second and third
+    # indices are swapped
+    return self.H_core + np.einsum('ij,uvij->uv', self.D, self.tei - 1/2 * np.swapaxes(self.tei, 1, 2))
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The SCF energy}
+    \begin{python}
+def electronic_energy(self):
+    self.E_elec = 1/2*np.einsum('ij,ij', self.D, self.H_core + self.F)
+
+def total_energy(self):
+    self.E_tot self.id.nuclear_repulsion_energy() + electronic_energy(self.D, self.F, self.H_core)
+    \end{python}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The SCF energy}
+    \begin{python}
+def SCF(self):
+    # setting up entry parameters
+    self.one_electron_integrals()
+    self.two_electron_integrals()
+    self.density_matrix(inital=True)
+    self.fock_matrix()
+    self.electroni_energy()
+
+    E_old = self.E_elec
+    D_old = self.D
+    E_list = list()
+    rms_D = 1
+
+    itercount = 0
+    while rms_D < 1e-4 and itercount < 50:
+
+        # calculating block: calculates energies
+        E_new = self.electronic_energy()
+        E_total = self.total_energy()
+
+        # generating block: generates new matrices
+        F_n =  self.fock_matrix()
+        self.D = self.density_matrix()
+
+        # comparing block: will answer the "Are we there yet?" question
+        rms_D = np.einsum("pq->", np.sqrt((d_old - d_new)**2), optimize=True)
+        if abs(E_old - E_new) < 1e-6 and :
+            convergence = True
+
+
+        # maintenance block: keeps everything going
+        print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D: .8f}")
+        E_old = E_new
+        d_old = d_new
+        E_list.append(E_new)
+        itercount += 1
+    
+    return E_list
+
+    \end{python}
 \end{frame}
 
 \end{document}
