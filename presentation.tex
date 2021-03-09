@@ -239,8 +239,8 @@ class Molecule:
 \begin{frame}[fragile]
     \begin{python}
         ...
-        data += "units bohr"
-        self.id = psi4.geometry(data)
+            data += "units bohr"
+            self.id = psi4.geometry(data)
         self.id.update_geometry()
         self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
         self.basis = self.wfn.basisset()
