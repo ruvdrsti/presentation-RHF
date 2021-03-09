@@ -4,6 +4,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{braket}
 \usepackage{listings}
+\usepackage{graphicx}
 \usetheme{Copenhagen}
 
 % listings python setting
@@ -24,6 +25,7 @@
 \newcommand\pythonstyle{\lstset{
 language=Python,
 basicstyle=\ttm,
+commentstyle=\ttm,
 morekeywords={self},              % Add keywords here
 keywordstyle=\ttb\color{deepblue},
 emph={MyClass,__init__},          % Custom highlighting
@@ -200,6 +202,21 @@ showstringspaces=false
     \end{itemize}
 \end{frame}
 
+
+\begin{frame}
+    \frametitle{The Density Matrix}
+    \begin{itemize}
+        \item Expansion in the basis
+        \begin{equation*}
+            \hat{J}_i = \int\sum_{\sigma}C^*_{\sigma}\phi^*_{\sigma}(x_j)\frac{1}{|\boldsymbol{r}_1 - \boldsymbol{r}_j|}\sum_{\nu}C_{\nu}\phi_{\nu}(x_j)dx_j
+        \end{equation*}
+        \item Density Matrix
+        \begin{equation*}
+            D_{\sigma\nu} = 2\sum^{N/2}_jC_{\sigma j}^*C_{\nu j}
+        \end{equation*}
+    \end{itemize}
+\end{frame}
+
 \section{How?}
 \label{sec:how}
 \begin{frame}[fragile]
@@ -222,8 +239,8 @@ class Molecule:
 \begin{frame}[fragile]
     \begin{python}
         ...
-        data += "units bohr"
-        self.id = psi4.geometry(data)
+            data += "units bohr"
+            self.id = psi4.geometry(data)
         self.id.update_geometry()
         self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
         self.basis = self.wfn.basisset()
@@ -302,6 +319,8 @@ def SCF(self):
     iteration = 0
     iterations = [0]
     energies = list()
+
+
     # Init
     self.one_electron_integrals()
     self.ElectronRepulsion()
@@ -383,6 +402,36 @@ def SCF(self):
         plt.show()
 
     \end{python}
+    \begin{python}        
+water = Molecule("pubchem:water")
+water.SCF()
+    \end{python}
+\end{frame}
+\begin{frame}[fragile]
+    \frametitle{water}
+    \begin{python}[basicstyle=\scriptsize]
+        i         E(elec)        Delta(E)          RMS(D)
+        1  -82.8304924416   -1.5423289586    3.6533461690
+        2  -82.9378550598   -0.1073626183    0.9591407297
+        3  -82.9438448043   -0.0059897445    0.1736633778
+        4  -82.9443390579   -0.0004942536    0.0620522727
+        5  -82.9444231232   -0.0000840653    0.0215985664
+        6  -82.9444414809   -0.0000183577    0.0105096537
+        7  -82.9444457095   -0.0000042285    0.0048771593
+        8  -82.9444466920   -0.0000009825    0.0023545591
+        9  -82.9444469206   -0.0000002287    0.0011290864
+        10  -82.9444469738   -0.0000000532    0.0005444100
+        11  -82.9444469862   -0.0000000124    0.0002623606
+        12  -82.9444469891   -0.0000000029    0.0001265513
+        13  -82.9444469898   -0.0000000007    0.0000610451
+        -74.94207992798844
+
+    \end{python}
 \end{frame}
 
+\begin{frame}
+    \begin{figure}
+        \includegraphics[width=1\textwidth]{convergence.png}
+    \end{figure}
+\end{frame}
 \end{document}
