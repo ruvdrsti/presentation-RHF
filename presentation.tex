@@ -319,6 +319,18 @@ def SCF(self):
     iteration = 0
     iterations = [0]
     energies = list()
+
+
+    # Init
+    self.one_electron_integrals()
+    self.ElectronRepulsion()
+    self.density_matrix(initial=True)
+    self.fock_matrix()
+    self.electronic_energy()
+    self.total_energy()
+    prev_D = self.D
+    prev_E_elec = self.E_elec
+    energies.append(prev_E_elec)
     \end{python}
 \end{frame}
 \begin{frame}[fragile]
@@ -372,7 +384,8 @@ def SCF(self):
             iteration += 1
             iterations.append(iteration)
             energies.append(self.E_elec)
-            print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, E_elec , delta_E_elec, delta_D))
+            print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, self.E_elec , delta_E_elec, delta_D))
+
         
             prev_D = self.D
             prev_E_elec = self.E_elec
