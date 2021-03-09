@@ -365,7 +365,8 @@ def SCF(self):
             iteration += 1
             iterations.append(iteration)
             energies.append(self.E_elec)
-            print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, E_elec , delta_E_elec, delta_D))
+            print("{} {:>15.10f} {:>15.10f} {:>15.10f}".format(iteration, self.E_elec , delta_E_elec, delta_D))
+
         
             prev_D = self.D
             prev_E_elec = self.E_elec
